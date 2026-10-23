@@ -30,8 +30,10 @@ directly over USB.
 - **Lives in the menu bar**: no Dock icon or window, optional Open at Login
 - **Changes apply instantly** and your last settings are remembered
 - **Command-line tool** (`glowbar`) for scripts, Shortcuts and automation
+- **Home Assistant** support over MQTT: the light bar shows up as a light, and it goes
+  unavailable on its own when you unplug your laptop or close the lid
 - Native Swift and SwiftUI, universal (Apple silicon and Intel), about 1 MB, no drivers or
-  kernel extensions, no network access
+  kernel extensions, no network access unless you turn on Home Assistant
 
 ## Supported monitors
 
@@ -105,6 +107,23 @@ $cli set off
 
 Speed is 1–6 and brightness is 1–10.
 
+### Home Assistant
+
+Glowbar can add the light bar to [Home Assistant](https://www.home-assistant.io) through MQTT
+discovery, so you can control it from dashboards and automations.
+
+1. In Home Assistant, set up the [MQTT integration](https://www.home-assistant.io/integrations/mqtt/)
+   if you haven't already (the Mosquitto broker add-on is the easiest way).
+2. In Glowbar's panel, click the **house** button, turn on **Connect to Home Assistant**, enter
+   the broker's host, port and login, and click **Apply**.
+
+A **Glowbar on <your Mac>** device appears with a light (on/off, effect, color, brightness) and a
+Speed control. It's made for laptops: when the Mac sleeps, leaves the network, or is unplugged
+from the monitor, the light shows as *unavailable* in Home Assistant instead of failing, and
+Glowbar reconnects quietly in the background. Changes made while the monitor is unplugged are
+applied when you plug it back in. See [docs/HOME_ASSISTANT.md](docs/HOME_ASSISTANT.md) for
+topics and details.
+
 ## How it works
 
 The monitor's light bar is driven by an ITE USB HID controller (VID `0x048D`, PID `0x8295`)
@@ -143,10 +162,10 @@ swift test
 
 | Path | What it is |
 | --- | --- |
-| `Sources/GlowbarKit` | Protocol encoder (`LightingProtocol.swift`) and IOKit HID transport (`MonitorLighting.swift`) |
+| `Sources/GlowbarKit` | Protocol encoder (`LightingProtocol.swift`), IOKit HID transport (`MonitorLighting.swift`), and the Home Assistant MQTT bridge (`HomeAssistant.swift`, `MQTTClient.swift`, `MQTTPacket.swift`) |
 | `Sources/GlowbarApp` | SwiftUI menu bar app |
 | `Sources/glowbar` | CLI |
-| `Tests/GlowbarKitTests` | Byte-level tests for every report |
+| `Tests/GlowbarKitTests` | Byte-level tests for every report, MQTT packets and Home Assistant messages |
 
 Contributions are welcome, especially compatibility reports and support for more AORUS monitors.
 

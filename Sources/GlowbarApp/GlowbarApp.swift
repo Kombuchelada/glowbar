@@ -11,5 +11,9 @@ struct GlowbarApp: App {
             Image(systemName: model.isConnected ? "light.strip.2.fill" : "light.strip.2")
         }
         .menuBarExtraStyle(.window)
+
+        Settings {
+            HomeAssistantSettings(bridge: model.homeAssistant, monitorConnected: model.isConnected)
+        }
     }
 }
