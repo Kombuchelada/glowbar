@@ -4,15 +4,8 @@ import SwiftUI
 struct HomeAssistantSettings: View {
     let bridge: HomeAssistantBridge
     let monitorConnected: Bool
-    @State private var draft: HomeAssistantBridge.Configuration
-    @State private var password: String
-
-    init(bridge: HomeAssistantBridge, monitorConnected: Bool) {
-        self.bridge = bridge
-        self.monitorConnected = monitorConnected
-        _draft = State(initialValue: bridge.configuration)
-        _password = State(initialValue: bridge.password)
-    }
+    @State private var draft = HomeAssistantBridge.Configuration()
+    @State private var password = ""
 
     private var hasChanges: Bool { draft != bridge.configuration || password != bridge.password }
 
@@ -53,6 +46,12 @@ struct HomeAssistantSettings: View {
             }
         }
         .formStyle(.grouped)
+        // The password arrives from the keychain after launch, so read both when the window opens.
+        .onAppear {
+            draft = bridge.configuration
+            password = bridge.password
+        }
+        .onChange(of: bridge.password) { _, stored in password = stored }
         .frame(width: 440)
         .fixedSize(horizontal: false, vertical: true)
     }

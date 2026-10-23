@@ -30,7 +30,8 @@ final class HomeAssistantBridge {
 
     private(set) var configuration: Configuration
     private(set) var status: Status = .off
-    @ObservationIgnored private(set) var password: String
+    /// Loaded from the keychain in `start()`.
+    private(set) var password = ""
 
     @ObservationIgnored weak var model: AppModel?
     @ObservationIgnored private var client: MQTTClient?
@@ -44,8 +45,6 @@ final class HomeAssistantBridge {
         let configuration = UserDefaults.standard.data(forKey: Self.configurationKey)
             .flatMap { try? JSONDecoder().decode(Configuration.self, from: $0) } ?? Configuration()
         self.configuration = configuration
-        // Only touch the keychain if a login was set up.
-        password = configuration.username.isEmpty ? "" : (BrokerPassword.read() ?? "")
         device = Self.makeDevice(prefix: configuration.discoveryPrefix)
 
         let center = NSWorkspace.shared.notificationCenter
@@ -57,7 +56,16 @@ final class HomeAssistantBridge {
         }
     }
 
-    func start() { reconnect() }
+    func start() {
+        // Only touch the keychain if a login was set up.
+        guard !configuration.username.isEmpty else { return reconnect() }
+        Task {
+            // Reading can wait on a keychain access prompt (after every update of an ad-hoc
+            // signed app); keep the menu bar panel responsive meanwhile.
+            password = await Task.detached { BrokerPassword.read() ?? "" }.value
+            reconnect()
+        }
+    }
 
     func update(_ configuration: Configuration, password: String) {
         if password != self.password { BrokerPassword.write(password) }
