@@ -15,6 +15,7 @@ final class AppModel {
     var settings: LightingSettings {
         didSet {
             guard settings != oldValue else { return }
+            if settings.effect != .off { lastLitEffect = settings.effect }
             save()
             scheduleApply()
         }
@@ -24,19 +25,30 @@ final class AppModel {
     private(set) var controllerName: String?
     private(set) var firmware: String?
 
+    /// The effect to restore when something turns the light back on (Home Assistant's "on").
+    @ObservationIgnored private(set) var lastLitEffect: Effect {
+        didSet { UserDefaults.standard.set(lastLitEffect.rawValue, forKey: Self.lastLitKey) }
+    }
+
+    @ObservationIgnored let homeAssistant = HomeAssistantBridge()
     @ObservationIgnored private let browser = LightingControllerBrowser()
     @ObservationIgnored private var pendingApply: Task<Void, Never>?
+    /// Settings changed while no monitor was connected; send them when one shows up.
+    @ObservationIgnored private var applyOnConnect = false
     @ObservationIgnored private static let defaultsKey = "lightingSettings"
+    @ObservationIgnored private static let lastLitKey = "lastLitEffect"
 
     init() {
-        if let data = UserDefaults.standard.data(forKey: Self.defaultsKey),
-           let saved = try? JSONDecoder().decode(LightingSettings.self, from: data) {
-            settings = saved
-        } else {
-            settings = LightingSettings()
-        }
+        let saved = UserDefaults.standard.data(forKey: Self.defaultsKey)
+            .flatMap { try? JSONDecoder().decode(LightingSettings.self, from: $0) }
+        let initial = saved ?? LightingSettings()
+        lastLitEffect = UserDefaults.standard.string(forKey: Self.lastLitKey).flatMap(Effect.init(rawValue:))
+            ?? (initial.effect == .off ? .staticColor : initial.effect)
+        settings = initial
         browser.onChange = { [weak self] in self?.controllersChanged() }
         browser.start()
+        homeAssistant.model = self
+        homeAssistant.start()
     }
 
     var isConnected: Bool { controllerName != nil }
@@ -46,10 +58,13 @@ final class AppModel {
             controllerName = nil
             firmware = nil
             status = .searching
+            homeAssistant.publishMonitorAvailability()
             return
         }
         controllerName = Self.monitorDisplayName ?? controller.productName
         status = .connected(controllerName!)
+        homeAssistant.publishMonitorAvailability()
+        if applyOnConnect { applyNow() }
     }
 
     /// The controller's USB name is generic ("ITE Device"); prefer the display's own name.
@@ -64,12 +79,17 @@ final class AppModel {
             try? await Task.sleep(for: .milliseconds(150))
             guard !Task.isCancelled else { return }
             self?.applyNow()
+            self?.homeAssistant.publishState()
         }
     }
 
     func applyNow() {
-        // Without a monitor, settings are just saved; the header already says what to connect.
-        guard let controller = browser.controllers.first else { return }
+        // Without a monitor, settings are saved and sent once it's connected again.
+        guard let controller = browser.controllers.first else {
+            applyOnConnect = true
+            return
+        }
+        applyOnConnect = false
         do {
             try controller.apply(settings)
             firmware = controller.info?.firmwareVersion

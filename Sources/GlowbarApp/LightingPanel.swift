@@ -319,6 +319,7 @@ private struct LevelSlider: View {
 
 private struct PanelFooter: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         HStack {
@@ -333,6 +334,15 @@ private struct PanelFooter: View {
                     }
                 }
             Spacer()
+            Button {
+                // A menu bar app has to come forward itself, or the window opens behind others.
+                NSApp.activate(ignoringOtherApps: true)
+                openSettings()
+            } label: {
+                Image(systemName: "house")
+            }
+            .buttonStyle(.borderless)
+            .help("Home Assistant")
             Button("Quit") { NSApp.terminate(nil) }
                 .buttonStyle(.borderless)
                 .keyboardShortcut("q")
