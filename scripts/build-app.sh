@@ -51,6 +51,10 @@ for flag in "$@"; do
       rm -f "$zip"
       ditto -c -k --keepParent "$app" "$zip"
       echo "Wrote $zip"
+      # Values for Casks/glowbar.rb in github.com/Kombuchelada/homebrew-tap,
+      # after uploading this zip to the v$version release.
+      echo "Cask: version \"$version\""
+      echo "      sha256 \"$(shasum -a 256 "$zip" | cut -d' ' -f1)\""
       ;;
     *)
       echo "Unknown option $flag" >&2

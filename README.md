@@ -53,6 +53,15 @@ If you have another AORUS monitor, run `glowbar info` (it only reads from the mo
 
 ## Install
 
+### Homebrew
+
+```sh
+brew install --cask kombuchelada/tap/glowbar
+```
+
+This installs Glowbar.app and puts the `glowbar` CLI on your PATH. Glowbar isn't notarized,
+so approve it once on first launch (see step 3 below).
+
 ### Download
 
 1. Download `Glowbar-<version>.zip` from [Releases](../../releases) and unzip it.
@@ -81,10 +90,11 @@ after the monitor was power-cycled or switched KVM inputs).
 
 ### Command line
 
-The app bundle includes a small CLI:
+The app bundle includes a small CLI. Homebrew installs put it on your PATH as `glowbar`;
+otherwise it's at `/Applications/Glowbar.app/Contents/Resources/glowbar`.
 
 ```sh
-cli=/Applications/Glowbar.app/Contents/Resources/glowbar
+cli=glowbar
 $cli list                                   # find the lighting controller (no USB traffic)
 $cli info                                   # firmware version and FO-series check (read-only)
 $cli effects                                # list effect names
