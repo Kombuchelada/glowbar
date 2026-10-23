@@ -6,6 +6,8 @@ import SwiftUI
 /// The whole app: a menu bar panel with every lighting control.
 struct LightingPanel: View {
     @Bindable var model: AppModel
+    /// Closes the menu the panel is shown in.
+    var closeMenu: () -> Void = {}
 
     var body: some View {
         let effect = model.settings.effect
@@ -36,7 +38,7 @@ struct LightingPanel: View {
                 .disabledLook(!effect.usesBrightness)
             }
             Divider()
-            PanelFooter()
+            PanelFooter(closeMenu: closeMenu)
         }
         .padding(14)
         .frame(width: 320)
@@ -318,6 +320,7 @@ private struct LevelSlider: View {
 // MARK: - Footer
 
 private struct PanelFooter: View {
+    let closeMenu: () -> Void
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @Environment(\.openSettings) private var openSettings
 
@@ -335,6 +338,7 @@ private struct PanelFooter: View {
                 }
             Spacer()
             Button {
+                closeMenu()
                 // A menu bar app has to come forward itself, or the window opens behind others.
                 NSApp.activate(ignoringOtherApps: true)
                 openSettings()
