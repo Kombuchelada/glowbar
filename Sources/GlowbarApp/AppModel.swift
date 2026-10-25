@@ -47,6 +47,12 @@ final class AppModel {
         settings = initial
         browser.onChange = { [weak self] in self?.controllersChanged() }
         browser.start()
+        // Over USB-C the controller can enumerate before the display does; rename once it appears.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshControllerName() }
+        }
         homeAssistant.model = self
         homeAssistant.start()
     }
@@ -65,6 +71,11 @@ final class AppModel {
         status = .connected(controllerName!)
         homeAssistant.publishMonitorAvailability()
         if applyOnConnect { applyNow() }
+    }
+
+    private func refreshControllerName() {
+        guard let controller = browser.controllers.first else { return }
+        controllerName = Self.monitorDisplayName ?? controller.productName
     }
 
     /// The controller's USB name is generic ("ITE Device"); prefer the display's own name.
