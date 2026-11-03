@@ -33,8 +33,6 @@ final class AppModel {
     @ObservationIgnored let homeAssistant = HomeAssistantBridge()
     @ObservationIgnored private let browser = LightingControllerBrowser()
     @ObservationIgnored private var pendingApply: Task<Void, Never>?
-    /// Settings changed while no monitor was connected; send them when one shows up.
-    @ObservationIgnored private var applyOnConnect = false
     @ObservationIgnored private static let defaultsKey = "lightingSettings"
     @ObservationIgnored private static let lastLitKey = "lastLitEffect"
 
@@ -70,7 +68,22 @@ final class AppModel {
         controllerName = Self.monitorDisplayName ?? controller.productName
         status = .connected(controllerName!)
         homeAssistant.publishMonitorAvailability()
-        if applyOnConnect { applyNow() }
+        restoreSettings(to: controller)
+    }
+
+    /// The controller loses its state whenever the monitor cuts its power, which happens on every
+    /// standby wake (about every 30 s while the display sleeps), not just when the cable is
+    /// unplugged. It boots showing the factory effect, so send the saved settings every time it
+    /// shows up; otherwise a bar set to Off lights up at night. It may not answer in the first
+    /// moments after enumerating, so retry briefly.
+    private func restoreSettings(to controller: LightingController, attempt: Int = 0) {
+        applyNow()
+        guard case .failed = status, attempt < 4 else { return }
+        Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard let self, browser.controllers.first === controller else { return }
+            restoreSettings(to: controller, attempt: attempt + 1)
+        }
     }
 
     private func refreshControllerName() {
@@ -95,12 +108,8 @@ final class AppModel {
     }
 
     func applyNow() {
-        // Without a monitor, settings are saved and sent once it's connected again.
-        guard let controller = browser.controllers.first else {
-            applyOnConnect = true
-            return
-        }
-        applyOnConnect = false
+        // Without a monitor, settings stay saved and are sent when one connects.
+        guard let controller = browser.controllers.first else { return }
         do {
             try controller.apply(settings)
             firmware = controller.info?.firmwareVersion
