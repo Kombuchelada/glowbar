@@ -28,7 +28,8 @@ directly over USB.
   Color Stack, Color Rain and Off
 - **Color, speed and brightness** controls that turn on only for effects that use them
 - **Lives in the menu bar**: no Dock icon or window, optional Open at Login
-- **Changes apply instantly** and your last settings are remembered
+- **Changes apply instantly**, your last settings are remembered, and they are sent again
+  whenever the monitor reconnects (the light bar forgets them when the monitor cuts its power)
 - **Command-line tool** (`glowbar`) for scripts, Shortcuts and automation
 - **Home Assistant** support over MQTT: the light bar shows up as a light, and it goes
   unavailable on its own when you unplug your laptop or close the lid
