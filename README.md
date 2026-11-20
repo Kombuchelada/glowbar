@@ -66,11 +66,21 @@ This installs Glowbar.app and puts the `glowbar` CLI on your PATH.
 
 ### Download
 
-1. Download `Glowbar-<version>.zip` from [Releases](../../releases) and unzip it.
-2. Move **Glowbar.app** to Applications.
+Download `Glowbar-<version>.pkg` from [Releases](../../releases) and open it. The installer
+puts Glowbar in Applications, links the `glowbar` CLI into `/usr/local/bin`, and starts the app.
 
-Releases are signed with a Developer ID and notarized by Apple, so Glowbar opens like any
-other downloaded app.
+Prefer not to use an installer? Download `Glowbar-<version>.zip` instead, unzip it, and move
+**Glowbar.app** to Applications.
+
+Releases, including the installer, are signed with a Developer ID and notarized by Apple, so
+they open like any other download.
+
+To uninstall, quit Glowbar and move it to the Trash. If you used the installer, also run:
+
+```sh
+sudo rm /usr/local/bin/glowbar
+sudo pkgutil --forget io.github.kombuchelada.glowbar.pkg
+```
 
 ### Build from source
 
@@ -167,16 +177,23 @@ swift test
 
 ### Releases
 
-Releases are signed with a Developer ID certificate and notarized. With the certificate in
-your keychain and notarization credentials saved via `xcrun notarytool store-credentials <profile>`:
+Releases are signed with Developer ID Application and Developer ID Installer certificates
+and notarized. With both certificates in your keychain and notarization credentials saved via
+`xcrun notarytool store-credentials <profile>`:
 
 ```sh
-SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" NOTARY_PROFILE=<profile> \
-  ./scripts/build-app.sh --notarize
+SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+INSTALLER_IDENTITY="Developer ID Installer: Your Name (TEAMID)" \
+NOTARY_PROFILE=<profile> ./scripts/build-app.sh --notarize --pkg
 ```
 
 This builds, signs the app and the CLI with the hardened runtime, notarizes, staples the
 ticket and writes `build/Glowbar-<version>.zip`, printing the values for the Homebrew cask.
+`--pkg` also wraps the app in `build/Glowbar-<version>.pkg` with `scripts/make-pkg.sh`,
+notarized and stapled too. The installer always installs into `/Applications`, for all users,
+then links the CLI into `/usr/local/bin` (never replacing an unrelated file there) and opens
+Glowbar for the user at the screen (`Resources/pkg/postinstall`). Attach both files to the
+GitHub release.
 
 Contributions are welcome, especially compatibility reports and support for more AORUS monitors.
 

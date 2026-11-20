@@ -3,6 +3,8 @@
 #   --install   also copy it to ~/Applications
 #   --zip       also write build/Glowbar-<version>.zip for a GitHub release
 #   --notarize  notarize the app with Apple and staple the ticket before zipping (implies --zip)
+#   --pkg       also write build/Glowbar-<version>.pkg, an installer package (notarized too
+#               with --notarize); needs INSTALLER_IDENTITY, a "Developer ID Installer: …" certificate
 #
 # Signing is ad-hoc by default, which is enough to run it on your own Mac. For a release,
 # set SIGN_IDENTITY to a "Developer ID Application: …" certificate in your keychain and,
@@ -12,12 +14,13 @@ set -euo pipefail
 root="${0:A:h:h}"
 app="$root/build/Glowbar.app"
 
-install=false zip=false notarize=false
+install=false zip=false notarize=false pkg=false
 for flag in "$@"; do
   case "$flag" in
     --install) install=true ;;
     --zip) zip=true ;;
     --notarize) notarize=true zip=true ;;
+    --pkg) pkg=true ;;
     *)
       echo "Unknown option $flag" >&2
       exit 2
@@ -26,6 +29,10 @@ for flag in "$@"; do
 done
 if $notarize && [[ -z "${SIGN_IDENTITY:-}" || -z "${NOTARY_PROFILE:-}" ]]; then
   echo "--notarize needs SIGN_IDENTITY and NOTARY_PROFILE" >&2
+  exit 2
+fi
+if $pkg && [[ -z "${INSTALLER_IDENTITY:-}" ]]; then
+  echo "--pkg needs INSTALLER_IDENTITY" >&2
   exit 2
 fi
 
@@ -96,6 +103,14 @@ if $zip; then
   # after uploading this zip to the v$version release.
   echo "Cask: version \"$version\""
   echo "      sha256 \"$(shasum -a 256 "$archive" | cut -d' ' -f1)\""
+fi
+
+if $pkg; then
+  if $notarize; then
+    "$root/scripts/make-pkg.sh" "$app"
+  else
+    NOTARY_PROFILE= "$root/scripts/make-pkg.sh" "$app"
+  fi
 fi
 
 if $install; then
