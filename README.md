@@ -62,22 +62,19 @@ If you have another AORUS monitor, run `glowbar info` (it only reads from the mo
 brew install --cask kombuchelada/tap/glowbar
 ```
 
-This installs Glowbar.app and puts the `glowbar` CLI on your PATH. Glowbar isn't notarized,
-so approve it once on first launch (see step 3 below).
+This installs Glowbar.app and puts the `glowbar` CLI on your PATH.
 
 ### Download
 
 1. Download `Glowbar-<version>.zip` from [Releases](../../releases) and unzip it.
 2. Move **Glowbar.app** to Applications.
-3. Glowbar isn't notarized, so macOS blocks it the first time. Open it once, then go to
-   **System Settings → Privacy & Security** and click **Open Anyway**. Or run:
-   ```sh
-   xattr -dr com.apple.quarantine /Applications/Glowbar.app
-   ```
+
+Releases are signed with a Developer ID and notarized by Apple, so Glowbar opens like any
+other downloaded app.
 
 ### Build from source
 
-Requires Xcode 16 or later.
+Requires Xcode 16 or later, or just the Xcode Command Line Tools.
 
 ```sh
 git clone https://github.com/Kombuchelada/glowbar.git
@@ -167,6 +164,19 @@ swift test
 | `Sources/GlowbarApp` | SwiftUI menu bar app |
 | `Sources/glowbar` | CLI |
 | `Tests/GlowbarKitTests` | Byte-level tests for every report, MQTT packets and Home Assistant messages |
+
+### Releases
+
+Releases are signed with a Developer ID certificate and notarized. With the certificate in
+your keychain and notarization credentials saved via `xcrun notarytool store-credentials <profile>`:
+
+```sh
+SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" NOTARY_PROFILE=<profile> \
+  ./scripts/build-app.sh --notarize
+```
+
+This builds, signs the app and the CLI with the hardened runtime, notarizes, staples the
+ticket and writes `build/Glowbar-<version>.zip`, printing the values for the Homebrew cask.
 
 Contributions are welcome, especially compatibility reports and support for more AORUS monitors.
 
