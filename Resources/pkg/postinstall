@@ -1,0 +1,27 @@
+#!/bin/sh
+# Runs as root after Installer has copied Glowbar into /Applications.
+set -u
+
+APP="${3%/}/Applications/Glowbar.app"
+
+# Put the glowbar CLI on the PATH, as the Homebrew cask does. Only create or replace a
+# symlink to a Glowbar CLI; never overwrite some other file at that path.
+CLI="$APP/Contents/Resources/glowbar"
+LINK=/usr/local/bin/glowbar
+/bin/mkdir -p /usr/local/bin
+if [ ! -e "$LINK" ] && [ ! -L "$LINK" ]; then
+    /bin/ln -s "$CLI" "$LINK"
+elif [ -L "$LINK" ]; then
+    case "$(/usr/bin/readlink "$LINK")" in
+        */Glowbar.app/Contents/Resources/glowbar) /bin/ln -sfh "$CLI" "$LINK" ;;
+    esac
+fi
+
+# Start the new version for the user at the screen (quitting the old one first).
+user="$(/usr/bin/stat -f %Su /dev/console)"
+if [ -n "$user" ] && [ "$user" != "root" ] && [ "$user" != "loginwindow" ]; then
+    uid="$(/usr/bin/id -u "$user")"
+    /usr/bin/pkill -x -u "$uid" Glowbar 2>/dev/null && /bin/sleep 1
+    /bin/launchctl asuser "$uid" /usr/bin/sudo -u "$user" /usr/bin/open "$APP" || true
+fi
+exit 0
